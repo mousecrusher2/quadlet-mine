@@ -10,6 +10,8 @@ ConditionPathExists=/var/lib/minecraft/data/rcon.yaml
 
 [Service]
 Type=oneshot
+User=65532
+Group=65532
 TimeoutStartSec=infinity
 ExecSearchPath=/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin
 ExecSearchPath=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
