@@ -11,52 +11,32 @@ ConditionPathExists=/var/lib/minecraft/data/rcon.yaml
 [Service]
 Type=oneshot
 TimeoutStartSec=infinity
+ExecSearchPath=/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin
 ExecSearchPath=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 
 # Commands run serially. A failure skips the remaining commands and runs ExecStopPost.
-ExecStart=/usr/bin/podman run \
-  --rm \
-  --pull=newer \
-  --network=host \
-  --volume=/var/lib/minecraft/data/rcon.yaml:/rcon.yaml:ro,z \
-  docker.io/itzg/rcon-cli:latest \
-  --config=/rcon.yaml \
+ExecStart=rcon-cli \
+  --config=/var/lib/minecraft/data/rcon.yaml \
   save-off
 
-ExecStart=/usr/bin/podman run \
-  --rm \
-  --network=host \
-  --volume=/var/lib/minecraft/data/rcon.yaml:/rcon.yaml:ro,z \
-  docker.io/itzg/rcon-cli:latest \
-  --config=/rcon.yaml \
+ExecStart=rcon-cli \
+  --config=/var/lib/minecraft/data/rcon.yaml \
   save-all flush
 
 ExecStart=restic \
   --repo=/var/lib/minecraft/backup \
   --insecure-no-password \
-  --host=minecraft \
   backup \
-  --tag=minecraft \
   /var/lib/minecraft/data
 
 ExecStart=restic \
   --repo=/var/lib/minecraft/backup \
   --insecure-no-password \
-  --host=minecraft \
   forget \
-  --tag=minecraft \
   --keep-last=20 \
   --prune
 
 # ExecStopPost also runs when backup or pruning fails.
-ExecStopPost=-/usr/bin/podman run \
-  --rm \
-  --network=host \
-  --volume=/var/lib/minecraft/data/rcon.yaml:/rcon.yaml:ro,z \
-  docker.io/itzg/rcon-cli:latest \
-  --config=/rcon.yaml \
+ExecStopPost=-rcon-cli \
+  --config=/var/lib/minecraft/data/rcon.yaml \
   save-on
-
-Nice=10
-IOSchedulingClass=best-effort
-IOSchedulingPriority=7

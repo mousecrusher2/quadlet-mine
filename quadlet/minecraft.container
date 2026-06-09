@@ -8,10 +8,12 @@ After=network-online.target
 Image=gcr.io/distroless/java25-debian13:nonroot
 ContainerName=minecraft
 AutoUpdate=registry
-StopTimeout=90
+PodmanArgs=--entrypoint=/usr/bin/java
+PodmanArgs=--stop-timeout=90
 
 # The nonroot distroless user is uid/gid 65532. Podman itself remains rootful.
-User=65532:65532
+User=65532
+Group=65532
 WorkingDir=/minecraft
 
 # The server gets one read-write data directory.
@@ -22,7 +24,6 @@ PublishPort=0.0.0.0:25565:25565/tcp
 PublishPort=[::]:25565:25565/tcp
 PublishPort=127.0.0.1:25575:25575/tcp
 
-Entrypoint=["/usr/bin/java"]
 Exec=-Xms4G -Xmx4G \
   -XX:+UseG1GC \
   -XX:MaxGCPauseMillis=130 \
@@ -40,15 +41,9 @@ RestartSec=10s
 TimeoutStartSec=15min
 TimeoutStopSec=2min
 
-# Quadlet has no RCON-aware stop operation, so use the requested helper image.
+# Quadlet has no RCON-aware stop operation, so use the host RCON client.
 # A leading '-' keeps systemd cleanup working when RCON is already unavailable.
-ExecStop=-/usr/bin/podman run \
-  --rm \
-  --network=host \
-  --volume=/var/lib/minecraft/data/rcon.yaml:/rcon.yaml:ro,z \
-  docker.io/itzg/rcon-cli:latest \
-  --config=/rcon.yaml \
-  stop
+ExecStop=-rcon-cli --config=/var/lib/minecraft/data/rcon.yaml stop
 
 [Install]
 WantedBy=multi-user.target
