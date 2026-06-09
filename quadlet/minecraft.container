@@ -43,8 +43,9 @@ TimeoutStartSec=15min
 TimeoutStopSec=2min
 
 # Quadlet has no RCON-aware stop operation, so use the host RCON client.
-# A leading '-' keeps systemd cleanup working when RCON is already unavailable.
+# Wait for the main process so Quadlet cleanup does not interrupt shutdown.
 ExecStop=-rcon-cli --config=/var/lib/minecraft/data/rcon.yaml stop
+ExecStop=-tail --pid=${MAINPID} -f /dev/null
 
 [Install]
 WantedBy=multi-user.target
