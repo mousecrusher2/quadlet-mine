@@ -1,0 +1,62 @@
+[Unit]
+Description=Restic backup of the Minecraft server
+Documentation=https://restic.readthedocs.io/en/stable/
+Requires=minecraft.service
+After=minecraft.service network-online.target
+Wants=network-online.target
+ConditionPathIsDirectory=/var/lib/minecraft/data
+ConditionPathIsDirectory=/var/lib/minecraft/backup
+ConditionPathExists=/var/lib/minecraft/data/rcon.yaml
+
+[Service]
+Type=oneshot
+TimeoutStartSec=infinity
+ExecSearchPath=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+
+# Commands run serially. A failure skips the remaining commands and runs ExecStopPost.
+ExecStart=/usr/bin/podman run \
+  --rm \
+  --pull=newer \
+  --network=host \
+  --volume=/var/lib/minecraft/data/rcon.yaml:/rcon.yaml:ro,z \
+  docker.io/itzg/rcon-cli:latest \
+  --config=/rcon.yaml \
+  save-off
+
+ExecStart=/usr/bin/podman run \
+  --rm \
+  --network=host \
+  --volume=/var/lib/minecraft/data/rcon.yaml:/rcon.yaml:ro,z \
+  docker.io/itzg/rcon-cli:latest \
+  --config=/rcon.yaml \
+  save-all flush
+
+ExecStart=restic \
+  --repo=/var/lib/minecraft/backup \
+  --insecure-no-password \
+  --host=minecraft \
+  backup \
+  --tag=minecraft \
+  /var/lib/minecraft/data
+
+ExecStart=restic \
+  --repo=/var/lib/minecraft/backup \
+  --insecure-no-password \
+  --host=minecraft \
+  forget \
+  --tag=minecraft \
+  --keep-last=20 \
+  --prune
+
+# ExecStopPost also runs when backup or pruning fails.
+ExecStopPost=-/usr/bin/podman run \
+  --rm \
+  --network=host \
+  --volume=/var/lib/minecraft/data/rcon.yaml:/rcon.yaml:ro,z \
+  docker.io/itzg/rcon-cli:latest \
+  --config=/rcon.yaml \
+  save-on
+
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

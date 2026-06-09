@@ -1,0 +1,54 @@
+[Unit]
+Description=Minecraft Server
+Documentation=https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=gcr.io/distroless/java25-debian13:nonroot
+ContainerName=minecraft
+AutoUpdate=registry
+StopTimeout=90
+
+# The nonroot distroless user is uid/gid 65532. Podman itself remains rootful.
+User=65532:65532
+WorkingDir=/minecraft
+
+# The server gets one read-write data directory.
+Volume=/var/lib/minecraft/data:/minecraft:rw,z
+
+# Minecraft is public on IPv4 and IPv6. RCON is reachable only via IPv4 loopback.
+PublishPort=0.0.0.0:25565:25565/tcp
+PublishPort=[::]:25565:25565/tcp
+PublishPort=127.0.0.1:25575:25575/tcp
+
+Entrypoint=["/usr/bin/java"]
+Exec=-Xms4G -Xmx4G \
+  -XX:+UseG1GC \
+  -XX:MaxGCPauseMillis=130 \
+  -XX:+DisableExplicitGC \
+  -XX:+AlwaysPreTouch \
+  -XX:+UseCompactObjectHeaders \
+  -XX:+UseStringDeduplication \
+  -XX:G1MixedGCCountTarget=3 \
+  -XX:G1RSetUpdatingPauseTimePercent=0 \
+  -jar server.jar --nogui
+
+[Service]
+Restart=on-failure
+RestartSec=10s
+TimeoutStartSec=15min
+TimeoutStopSec=2min
+
+# Quadlet has no RCON-aware stop operation, so use the requested helper image.
+# A leading '-' keeps systemd cleanup working when RCON is already unavailable.
+ExecStop=-/usr/bin/podman run \
+  --rm \
+  --network=host \
+  --volume=/var/lib/minecraft/data/rcon.yaml:/rcon.yaml:ro,z \
+  docker.io/itzg/rcon-cli:latest \
+  --config=/rcon.yaml \
+  stop
+
+[Install]
+WantedBy=multi-user.target
