@@ -33,7 +33,9 @@ ExecStart=restic \
   --repo=/var/lib/minecraft/backup \
   --insecure-no-password \
   forget \
-  --keep-last=20 \
+  --keep-within=5d \
+  --keep-within-daily=1m \
+  --keep-within-weekly=1y \
   --prune
 
 # ExecStopPost also runs when backup or pruning fails.
