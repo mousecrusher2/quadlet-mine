@@ -4,9 +4,6 @@ Documentation=https://restic.readthedocs.io/en/stable/
 Requires=minecraft.service
 After=minecraft.service network-online.target
 Wants=network-online.target
-ConditionPathIsDirectory=/var/lib/minecraft/data
-ConditionPathIsDirectory=/var/lib/minecraft/backup
-ConditionPathExists=/var/lib/minecraft/data/rcon.yaml
 
 [Service]
 Type=oneshot
@@ -29,7 +26,7 @@ ExecStart=restic \
   --repo=/var/lib/minecraft/backup \
   --insecure-no-password \
   backup \
-  /var/lib/minecraft/data
+  /var/lib/minecraft/data/world
 
 ExecStart=restic \
   --repo=/var/lib/minecraft/backup \
